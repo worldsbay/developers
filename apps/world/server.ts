@@ -62,7 +62,6 @@ export async function createWorld(
       .strict()
       .parse(options.verification);
     app.get('/.well-known/worldsbay.json', async () => proof);
-    app.get('/.well-known/yoworlds.json', async () => proof);
     app.get('/.well-known/pocketbeyond.json', async () => proof);
   }
   const now = options.now ?? Date.now;

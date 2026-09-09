@@ -118,7 +118,7 @@ export function mountHub(options: {
   const viewport = window.visualViewport;
   const closingTimers = new Map<HTMLElement, number>();
   try {
-    muted = localStorage.getItem('yoworlds.chat-muted') === 'true';
+    muted = localStorage.getItem('worldsbay.chat-muted') === 'true';
   } catch {
     /* Storage can be unavailable in private sessions. */
   }
@@ -297,7 +297,7 @@ export function mountHub(options: {
     () => {
       muted = !muted;
       try {
-        localStorage.setItem('yoworlds.chat-muted', String(muted));
+        localStorage.setItem('worldsbay.chat-muted', String(muted));
       } catch {
         /* The setting still works for this visit. */
       }

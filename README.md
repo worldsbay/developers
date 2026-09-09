@@ -30,7 +30,7 @@ definition. The [setup guide](docs/WORLD-STARTER.md) covers hosting and first en
 
 ## Connect an existing game
 
-Use the official npm package `@worldsbay/api@0.1.0` with the
+This starter bundles the official `@worldsbay/api@0.1.1` archive in `vendor/`. Use it with the
 [server integration contract](docs/ARCHITECTURE.md). The browser build serves it
 at `/client/runtime/sdk.js`; `packages/sdk` re-exports the installed package.
 With a bundler, import directly from `@worldsbay/api`. The world server uses

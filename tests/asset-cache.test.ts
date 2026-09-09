@@ -20,7 +20,7 @@ const avatar: Appearance = {
 };
 
 test('a missing local asset directory falls back to approved central assets and deduplicates verified downloads', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'yoworlds-assets-'));
+  const directory = await mkdtemp(join(tmpdir(), 'worldsbay-assets-'));
   let downloads = 0;
   const fetcher: typeof fetch = async (url, options) => {
     downloads++;
@@ -65,7 +65,7 @@ test('downloaded or bundled bytes with the wrong content hash are rejected', asy
   );
   downloaded.appearance(avatar);
   await assert.rejects(downloaded.get(key), { statusCode: 502 });
-  const directory = await mkdtemp(join(tmpdir(), 'yoworlds-assets-'));
+  const directory = await mkdtemp(join(tmpdir(), 'worldsbay-assets-'));
   const filename = join(directory, key);
   let remoteCalls = 0;
   const bundled = new WorldAssetCache(

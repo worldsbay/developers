@@ -32,7 +32,7 @@ export class HttpError extends Error {
 export function requireBrowser(req: FastifyRequest, origin: string) {
   if (
     req.headers.origin !== origin ||
-    (req.headers['x-worldsbay'] !== '1' && req.headers['x-yoworlds'] !== '1' && req.headers['x-pocketbeyond'] !== '1') ||
+    (req.headers['x-worldsbay'] !== '1' && req.headers['x-pocketbeyond'] !== '1') ||
     req.headers.authorization
   )
     throw new HttpError(403, 'This action requires the matching browser origin.');

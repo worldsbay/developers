@@ -69,7 +69,7 @@ function entrySteps() {
     { call: ['/internal/accept', 'POST', undefined, grant] as Call, result: { ok: true } },
   ];
 }
-const browserHeaders = { origin: world.url, 'x-yoworlds': '1' };
+const browserHeaders = { origin: world.url, 'x-worldsbay': '1' };
 
 test('published API connects browser and world adapters and preserves central session rejection', async (t) => {
   const central = Fastify();

@@ -2,7 +2,7 @@ import type * as THREE from 'three';
 
 export type GraphicsTier = 'low' | 'medium' | 'high';
 export type GraphicsMode = 'auto' | GraphicsTier;
-const STORAGE_KEY = 'yoworlds.graphics-quality';
+const STORAGE_KEY = 'worldsbay.graphics-quality';
 const tiers: GraphicsTier[] = ['low', 'medium', 'high'];
 const settings = {
   low: { pixelRatio: 0.85, shadowSize: 0 },

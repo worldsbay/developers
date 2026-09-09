@@ -12,7 +12,7 @@ export async function api<T>(path: string, body?: unknown): Promise<T> {
   const response = await fetch(path, {
     method: body === undefined ? 'GET' : 'POST',
     headers: {
-      'x-yoworlds': '1',
+      'x-worldsbay': '1',
       'x-pocketbeyond': '1',
       ...(body === undefined ? {} : { 'content-type': 'application/json' }),
     },

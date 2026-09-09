@@ -4,7 +4,7 @@ dist/
 .env.*
 !.env.example
 worldsbay.json
-yoworlds.json
+worldsbay.json
 pocketbeyond.json
 .runtime/
 coverage/
