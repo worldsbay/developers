@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" href="/client/brand/favicon.ico?v=2" sizes="16x16 32x32 48x48" />
+    <link rel="icon" href="/client/brand/favicon.svg?v=2" type="image/svg+xml" sizes="any" />
+    <link rel="apple-touch-icon" href="/client/brand/apple-touch-icon.png?v=2" sizes="180x180" />
+    <title>My World · WorldsBay</title>
+    <link rel="stylesheet" href="/client/runtime/runtime.css" />
+  </head>
+  <body class="world-page" data-home-url="__HOME_URL__">
+    <div id="scene" aria-label="Interactive 3D world"></div>
+    <div id="world-ui"></div>
+    <div id="toast" role="status" aria-live="polite" hidden></div>
+    <section id="transition" class="loading-overlay">
+      <h2>Opening this world…</h2>
+      <p>Checking entry and preparing your explorer.</p>
+      <a class="button" href="__HOME_URL__">Return Home</a>
+    </section>
+    <script type="module" src="/world-content/client.js"></script>
+  </body>
+</html>

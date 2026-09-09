@@ -1,0 +1,298 @@
+body.lobby-page .layout:has(.character-creator) {
+  grid-template-columns: minmax(340px, 0.9fr) minmax(440px, 1.4fr);
+}
+body.lobby-page .layout:has(.character-creator) .avatar-stage {
+  height: 420px;
+}
+body.lobby-page .layout:has(.character-creator) .explorer-panel {
+  position: sticky;
+  top: 20px;
+  align-self: start;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.character-creator {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(260px, 1fr) minmax(300px, 1.2fr);
+}
+.character-creator:not(:has(.character-stage)) {
+  grid-template-columns: 1fr;
+}
+.character-stage {
+  min-height: 520px;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #dae2d6;
+}
+.character-controls {
+  padding: 26px;
+  border: 1px solid #c7d3c1;
+  border-radius: 20px;
+  background: #f5f7ef;
+  color: #263b34;
+}
+.character-controls h2 {
+  font-size: 2rem;
+  margin: 0 0 12px;
+}
+.character-controls p {
+  line-height: 1.6;
+}
+.character-kicker {
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  color: #567a64;
+  font-weight: 700;
+}
+.character-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.character-controls select,
+.character-controls input[type='search'] {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #b8c7b2;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+  color: #263b34;
+  font: inherit;
+}
+.character-parts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin: 20px 0;
+}
+.character-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin: 20px 0;
+}
+.character-palette {
+  margin-top: 20px;
+}
+.character-palette p,
+.character-fit-note,
+.character-fit-notice {
+  font-size: 12px;
+  color: #59694d;
+}
+.character-fit-notice:empty {
+  display: none;
+}
+.character-fit-notice {
+  padding: 12px;
+  border-radius: 8px;
+  background: #fff2d7;
+}
+.character-controls .character-original-toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.character-original-toggle input {
+  accent-color: #47654c;
+}
+.character-part-grid .character-fit-reason {
+  color: #765f41;
+  line-height: 1.4;
+}
+.character-controls .character-part-grid button:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+.character-colors input:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.character-part-picker {
+  min-width: 0;
+  border: 1px solid #cbd6c4;
+  border-radius: 12px;
+  background: #fff;
+}
+.character-part-picker summary {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 16px 10px 10px;
+  cursor: pointer;
+  list-style: none;
+  border-radius: 12px;
+}
+.character-part-picker summary::-webkit-details-marker {
+  display: none;
+}
+.character-part-picker summary:hover {
+  background: #f3f6ed;
+}
+.character-part-picker summary:focus-visible {
+  outline: 2px solid #567a64;
+  outline-offset: 2px;
+}
+.character-part-picker summary > img,
+.character-part-picker summary > .character-part-empty {
+  width: 48px;
+  height: 48px;
+  min-height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: #eef2e7;
+  border-radius: 8px;
+}
+.character-part-heading {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.character-part-heading strong {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.character-part-heading > span {
+  font-size: 0.75rem;
+  color: #63745b;
+}
+.character-part-chevron {
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid #567a64;
+  border-bottom: 1.5px solid #567a64;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+.character-part-picker[open] .character-part-chevron {
+  transform: rotate(225deg);
+}
+.character-part-content {
+  padding: 0 12px 14px;
+}
+.character-part-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+  padding-top: 8px;
+}
+.character-controls .character-part-grid button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  min-width: 0;
+  border-color: #d2dccb;
+  background: #f7f9f1;
+  font-size: 0.75rem;
+}
+.character-controls .character-part-grid button[aria-pressed='true'] {
+  outline: 2px solid #567a64;
+  background: #e1ebd5;
+}
+.character-part-grid img {
+  width: 96px;
+  height: 96px;
+  max-width: 100%;
+  object-fit: contain;
+}
+.character-part-grid small {
+  font-size: 0.62rem;
+  color: #59705c;
+}
+.character-part-empty {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  min-height: 64px;
+  color: #73846b;
+}
+.character-part-grid .character-part-empty {
+  height: 96px;
+}
+.character-colors input {
+  width: 56px;
+  height: 36px;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+.character-motion {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid #ccd7c5;
+  padding-top: 20px;
+}
+.character-status {
+  min-height: 3em;
+  font-size: 0.85rem;
+}
+.character-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+@media (max-width: 700px) {
+  body.lobby-page .layout:has(.character-creator) .avatar-stage {
+    height: 340px;
+  }
+  .character-controls select,
+  .character-controls input[type='search'] {
+    font-size: 16px;
+  }
+  .character-actions > button {
+    flex: 1 1 140px;
+  }
+}
+.character-controls button {
+  border: 1px solid #567a64;
+  border-radius: 9px;
+  padding: 11px 16px;
+  background: #e0e9d9;
+  color: #263b34;
+  cursor: pointer;
+  font: inherit;
+}
+.character-controls button.primary {
+  background: #263b34;
+  color: #fff;
+}
+.character-controls button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+@media (max-width: 900px) {
+  body.lobby-page .layout:has(.character-creator) .explorer-panel {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
+  body.lobby-page .layout:has(.character-creator) {
+    grid-template-columns: 1fr;
+  }
+  .character-creator {
+    grid-template-columns: 1fr;
+  }
+  .character-stage {
+    min-height: 360px;
+  }
+  .character-controls {
+    padding: 18px;
+  }
+  .character-parts {
+    grid-template-columns: 1fr;
+  }
+}
