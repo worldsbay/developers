@@ -115,8 +115,8 @@ can contact them. Never promise their campaign data was physically erased by cen
 ## Updating an installed starter
 
 The npm API methods are unchanged. Rebuild the game UI and distribute the updated
-starter/runtime as well as the central account service. Existing downloaded games
+starter/runtime as well as the central account service. Existing world installations
 do not update themselves. Older adapters need the authenticated account and store
 bridge routes described in [the integration contract](ARCHITECTURE.md); adding a
-button alone is not enough. Keep source checkout releases and downloadable archives
-in sync, and test the full journey before publishing either.
+button alone is not enough. Keep the developers repository and deployed examples in sync, and test the full
+journey before publishing changes.
