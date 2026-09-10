@@ -1,5 +1,28 @@
 # Integration contract
 
+## Player account bridge
+
+The included world server supports the complete [player account flow](PLAYER-ACCOUNT-FLOW.md).
+It stores grants only on the server and gives the browser HttpOnly cookies.
+Browser POST requests require the world's Origin and `x-worldsbay: 1`; browser
+bearer tokens are rejected. Return URLs come from the registered world.
+
+| World endpoint | Purpose |
+| --- | --- |
+| `POST /api/guest` | Start or reuse a guest through central. |
+| `POST /api/session/resume` | Resume only an existing remembered player. |
+| `GET /api/account` | Read the current player's guest/saved status. |
+| `POST /api/account/context` with `{ hosted: true }` | Start a hosted account flow with world-generated state and PKCE challenge. |
+| `GET /auth/callback` | Verify state and flow cookie, exchange the code with the server-held verifier, and accept the returned player. |
+| `POST /api/account/logout` | Revoke the world's grant and remembered credential before clearing local cookies. |
+| `POST /api/store` | Obtain a central editor/wardrobe URL with player and return-world context. |
+
+Use `sdk.openCharacterCreator()` for the editor and `openAccountPage(sdk, { mode })`
+for signin/signup. Editing and returning preserves player ID; gameplay saves must
+use that ID rather than display name. Signup offers public-name selection on
+central. Account closure/deletion also belongs on central with explicit confirmation;
+independent games remain responsible for deleting their own data.
+
 Your server owns gameplay. WorldsBay owns player accounts, wardrobe and world registration. The browser talks to your server using a local session cookie; only your server holds the world credential. This repository includes the world server and browser runtime, not the central account service.
 
 ## Entry and session lifetime

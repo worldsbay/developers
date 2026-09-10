@@ -54,6 +54,17 @@ function plannedTransport(steps: { call: Call; result?: unknown; error?: Error }
   const transport: CentralTransport = async <T>(...call: Call) => {
     const step = steps[position++];
     assert.ok(step, `Unexpected central request: ${call[0]}`);
+    if (call[0] === '/internal/accept' || call[0] === '/internal/account/logout') {
+      assert.match((call[2] as { resumeToken: string }).resumeToken, /^[A-Za-z0-9_-]{43}$/);
+      call[2] = undefined; // The random remembered credential is checked above.
+    }
+    if (call[0] === '/internal/account-context') {
+      const handoff = call[2] as { state: string; codeChallenge: string };
+      assert.match(handoff.state, /^[A-Za-z0-9_-]{43}$/);
+      assert.match(handoff.codeChallenge, /^[A-Za-z0-9_-]{43}$/);
+      assert.deepEqual(Object.keys(handoff).sort(), ['codeChallenge', 'state']);
+      call[2] = undefined;
+    }
     assert.deepEqual(call, step.call);
     if (step.error) throw step.error;
     return step.result as T;
@@ -66,10 +77,41 @@ function entrySteps() {
       call: ['/internal/exchange', 'POST', { token: ticket }] as Call,
       result: { session: grant, expiresAt },
     },
-    { call: ['/internal/accept', 'POST', undefined, grant] as Call, result: { ok: true } },
+    { call: ['/internal/accept', 'POST', undefined, grant] as Call, result: { ok: true, resumeExpiresAt: expiresAt } },
   ];
 }
 const browserHeaders = { origin: world.url, 'x-worldsbay': '1' };
+
+test('account menu preserves the player, provides editor return context, and retries failed sign-out', async (t) => {
+  const central = plannedTransport([
+    ...entrySteps(),
+    { call: ['/internal/account', 'GET', undefined, grant], result: { kind: 'account', displayName: appearance.player.name } },
+    { call: ['/internal/store', 'POST', {}, grant], result: { url: 'https://central.example/play?context=synthetic-editor-context' } },
+    { call: ['/internal/account-context', 'POST', undefined, grant], result: { url: 'https://central.example/auth/world?flow=synthetic' } },
+    { call: ['/internal/account/logout', 'POST', undefined, grant], error: new HttpError(503, 'Please retry sign-out.') },
+    { call: ['/internal/account', 'GET', undefined, grant], result: { kind: 'account' } },
+    { call: ['/internal/account/logout', 'POST', undefined, grant], result: { ok: true } },
+  ]);
+  const app = await createWorld(cfg, world.id, { static: false, transport: central.transport, now: () => now });
+  t.after(() => app.close());
+  const entry = await app.inject(`/enter?ticket=${ticket}`);
+  const cookie = entry.cookies.map(c => `${c.name}=${c.value}`).join('; ');
+  const sdk = new WorldsBay({ fetch: async (url, init) => {
+    const response = await app.inject({ method: init?.method as 'GET' | 'POST', url: String(url), headers: { ...Object.fromEntries(new Headers(init?.headers)), cookie, origin: world.url }, ...(init?.body ? { payload: String(init.body) } : {}) });
+    return new Response(response.body, { status: response.statusCode });
+  } });
+  assert.equal((await sdk.readAccount()).kind, 'account');
+  const editor = new URL((await sdk.openCharacterCreator()).url);
+  assert.equal(editor.searchParams.get('context'), 'synthetic-editor-context');
+  assert.equal(editor.searchParams.get('view'), 'character');
+  await sdk.createAccountContext();
+  assert.equal((await app.inject('/auth/callback?code=' + 'a'.repeat(43) + '&state=' + 'b'.repeat(43))).headers.location, '/?entry=failed');
+  await assert.rejects(sdk.signOut(), (error: unknown) => error instanceof RequestError && error.status === 503);
+  assert.equal((await sdk.readAccount()).kind, 'account');
+  await sdk.signOut();
+  await assert.rejects(sdk.readAccount(), (error: unknown) => error instanceof RequestError && error.status === 401);
+  central.done();
+});
 
 test('published API connects browser and world adapters and preserves central session rejection', async (t) => {
   const central = Fastify();
@@ -86,7 +128,8 @@ test('published API connects browser and world adapters and preserves central se
         assert.deepEqual(req.body, { token: ticket });
         return { session: grant, expiresAt };
       case '/internal/accept':
-        return { ok: true };
+        assert.match((req.body as { resumeToken: string }).resumeToken, /^[A-Za-z0-9_-]{43}$/);
+        return { ok: true, resumeExpiresAt: expiresAt };
       case '/internal/store':
         assert.deepEqual(req.body, { selectedItem: 'test-hat' });
         return { url: 'https://central.example/store' };
@@ -104,7 +147,7 @@ test('published API connects browser and world adapters and preserves central se
   const entry = await app.inject(`/enter?ticket=${ticket}`);
   assert.equal(entry.headers.location, '/');
   assert.ok(entry.headers['set-cookie']);
-  const cookie = String(entry.headers['set-cookie']).split(';')[0];
+  const cookie = entry.cookies.map(c => `${c.name}=${c.value}`).join('; ');
   const sdk = new WorldsBay({
     fetch: async (url, init) => {
       const headers = Object.fromEntries(new Headers(init?.headers));
@@ -175,7 +218,7 @@ test('public config and built browser files work without exposing server files o
   central.done();
 });
 
-test('failed entry acceptance issues no browser cookie or usable local session', async (t) => {
+test('failed entry acceptance issues no authorizing browser cookie or usable local session', async (t) => {
   const steps = entrySteps();
   const central = plannedTransport([
     steps[0],
@@ -190,7 +233,7 @@ test('failed entry acceptance issues no browser cookie or usable local session',
   const response = await app.inject(`/enter?ticket=${ticket}`);
   assert.equal(response.statusCode, 302);
   assert.equal(response.headers.location, '/?entry=failed');
-  assert.equal(response.headers['set-cookie'], undefined);
+  assert.ok(!response.cookies.some(c => c.name === '__Host-pb_test-world'));
   assert.equal((await app.inject('/api/session')).statusCode, 401);
   central.done();
 });
@@ -230,12 +273,12 @@ test('accepted entry keeps grants on the server and protects browser actions wit
   const entry = await app.inject(`/enter?ticket=${ticket}`);
   assert.equal(entry.statusCode, 302);
   assert.equal(entry.headers.location, '/');
-  const setCookie = String(entry.headers['set-cookie']);
+  const setCookie = (entry.headers['set-cookie'] as string[]).find(value => value.startsWith('__Host-pb_test-world='))!;
   assert.match(setCookie, /^__Host-pb_test-world=/);
   for (const attribute of ['Path=/', 'HttpOnly', 'Secure', 'SameSite=Lax'])
     assert.ok(setCookie.includes(attribute));
   for (const secret of [ticket, grant, privateKey]) assert.ok(!setCookie.includes(secret));
-  const cookie = setCookie.split(';')[0];
+  const cookie = entry.cookies.map(c => `${c.name}=${c.value}`).join('; ');
   const session = await app.inject({ url: '/api/session', headers: { cookie } });
   assert.equal(session.statusCode, 200);
   assert.equal(session.json().appearance.player.id, appearance.player.id);

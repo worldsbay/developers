@@ -45,10 +45,10 @@ export function hubMarkup(options: {
   return `<div class="hub-shell" data-open-panel="" data-connection="connecting">
     <header class="hub-topbar">
       <section class="hub-location" aria-label="Current world">
-        <a href="${esc(homeUrl)}" class="hub-home" aria-label="WorldsBay home">${brandMark}</a>
+        <button type="button" class="hub-home" data-panel="settings" aria-label="World menu" aria-expanded="false" aria-controls="hub-panel-settings">${brandMark}</button>
         <div class="hub-location-copy"><p class="hub-eyebrow">WORLDSBAY <span>/</span> LIVE TOGETHER</p><h1>${esc(worldName)}</h1><div class="hub-presence"><span class="hub-status-dot" aria-hidden="true"></span><span id="room-count">Joining the room</span><span class="hub-location-divider">·</span><span id="connection-state" role="status">Connecting…</span></div></div>
       </section>
-      <div class="hub-account"><button class="hub-player" data-panel="character" aria-expanded="false" aria-controls="hub-panel-character" aria-label="Your character"><span class="hub-avatar" aria-hidden="true">${esc(playerName.slice(0, 1).toUpperCase())}</span><span><strong id="player-name">${esc(playerName)}</strong><span class="hub-player-subtitle">Make yourself at home</span></span></button><button class="hub-icon-button hub-settings-button" data-panel="settings" aria-label="Settings" aria-expanded="false" aria-controls="hub-panel-settings">${icon('settings')}</button></div>
+      <div class="hub-account"><button class="hub-player" data-panel="character" aria-expanded="false" aria-controls="hub-panel-character" aria-label="Your character"><span class="hub-avatar" aria-hidden="true">${esc(playerName.slice(0, 1).toUpperCase())}</span><span><strong id="player-name">${esc(playerName)}</strong><span class="hub-player-subtitle">Your character and account</span></span></button><button id="hub-save-account" class="hub-save-account">Save account</button><button class="hub-icon-button hub-settings-button" data-panel="settings" aria-label="Settings" aria-expanded="false" aria-controls="hub-panel-settings">${icon('settings')}</button></div>
     </header>
     <p id="central-state" class="hub-service-note" role="status"></p>
     <div class="hub-world-caption" aria-hidden="true"><span>YOUR NEXT GOOD CONNECTION</span><p>Starts with a hello.</p></div>
@@ -68,7 +68,7 @@ export function hubMarkup(options: {
       <section id="hub-panel-worlds" class="hub-panel hub-worlds-panel" role="dialog" aria-labelledby="hub-worlds-title" tabindex="-1" hidden>
         ${panelHead('worlds', 'Where to next?', 'A WORLD OF POSSIBILITIES')}
         <p class="hub-panel-intro">A new place, a familiar you. Pick a destination and take your look along.</p><div class="hub-destinations">${destinations.length ? '' : '<p class="hub-panel-intro">More worlds are on their way. For now, enjoy a little company here in the plaza.</p>'}${destinations.map((world, index) => `<button class="hub-destination" data-destination="${esc(world.id)}" aria-pressed="${index === 0}" style="--destination-accent:${color(world.accent)}"><span class="hub-destination-art" aria-hidden="true"><span class="hub-orbit"></span><span class="hub-planet"></span><span class="hub-world-number">0${index + 1}</span></span><span class="hub-destination-copy"><strong>${esc(world.name)}</strong><span>${esc(world.description)}</span></span><span class="hub-destination-arrow">${icon('arrow')}</span></button>`).join('')}</div>
-        <div class="hub-travel-footer"><p id="portal-hint">Explore the portals in the plaza, or choose your next world here.</p><p id="destination-description">${esc(initial?.description ?? 'More worlds are on their way.')}</p><button id="travel" class="hub-primary"${initial ? '' : ' disabled'}>Travel to ${esc(initial?.name ?? 'another world')} ${icon('arrow')}</button></div>
+        <a class="hub-home-link" href="${esc(homeUrl)}/worlds">Browse all worlds ↗</a><div class="hub-travel-footer"><p id="portal-hint">Explore the portals in the plaza, or choose your next world here.</p><p id="destination-description">${esc(initial?.description ?? 'More worlds are on their way.')}</p><button id="travel" class="hub-primary"${initial ? '' : ' disabled'}>Travel to ${esc(initial?.name ?? 'another world')} ${icon('arrow')}</button></div>
       </section>
       <section id="hub-panel-settings" class="hub-panel" role="dialog" aria-labelledby="hub-settings-title" tabindex="-1" hidden>
         ${panelHead('settings', 'Your kind of world.', 'MAKE YOURSELF COMFORTABLE')}
@@ -79,7 +79,8 @@ export function hubMarkup(options: {
       </section>
       <section id="hub-panel-character" class="hub-panel hub-character-panel" role="dialog" aria-labelledby="hub-character-title" tabindex="-1" hidden>
         ${panelHead('character', 'Unmistakably you.', 'YOUR EXPLORER')}
-        <div class="hub-character-art" aria-hidden="true">${icon('character')}<span>${icon('sparkle')}</span></div><p class="hub-panel-intro">A new look, a new mood. Your character and collection travel with you.</p><div class="hub-look"><span class="hub-eyebrow">CURRENTLY WEARING</span><p id="outfit-label">Your signature look</p></div><button id="edit-character" class="hub-primary">Edit character ${icon('arrow')}</button><button id="store" class="hub-wardrobe">Open wardrobe ${icon('sparkle')}</button>
+        <div class="hub-account-card"><p id="hub-account-status" role="status">Checking your account…</p><div class="hub-button-row"><button id="hub-account-signup">Create account</button><button id="hub-account-signin">Sign in</button><button id="hub-account-logout" hidden>Sign out</button></div></div>
+        <div class="hub-character-art" aria-hidden="true">${icon('character')}<span>${icon('sparkle')}</span></div><p class="hub-panel-intro">Your public name, character and outfit travel with you. Edit them on WorldsBay in this tab, then use Return to this world to resume playing.</p><div class="hub-look"><span class="hub-eyebrow">CURRENTLY WEARING</span><p id="outfit-label">Your signature look</p></div><button id="edit-character" class="hub-primary">Edit name &amp; character ${icon('arrow')}</button><button id="store" class="hub-wardrobe">Open wardrobe ${icon('sparkle')}</button>
       </section>
     </div>
     <div id="wave-status" class="hub-wave-status" role="status"></div>
@@ -383,7 +384,7 @@ export function mountHub(options: {
       empty.querySelector('p')!.textContent = connected
         ? 'Everyone in this room can join in.'
         : state === 'expired'
-          ? 'Return home to join the conversation again.'
+          ? 'Reconnect to join the conversation again.'
           : state === 'offline'
             ? 'The conversation is paused while you are offline.'
             : 'Connecting you with this room…';
@@ -401,7 +402,7 @@ export function mountHub(options: {
     query('#chat-room-status').textContent = connected
       ? 'Live · this room'
       : state === 'expired'
-        ? 'Return home to join again'
+        ? 'Reconnect to join again'
         : state === 'offline'
           ? 'Offline · messages paused'
           : 'Reconnecting to the conversation…';

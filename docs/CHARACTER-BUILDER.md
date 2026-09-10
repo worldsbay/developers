@@ -4,6 +4,12 @@ Players edit and save their character on WorldsBay. Your world receives their ap
 
 ## Open the editor
 
+Label the game action **Edit name & character**. Open the URL from
+`sdk.openCharacterCreator()` in the same tab. The central editor offers **Edit name
+→ Save name**, **Save character**, and **Return to [world name]**. Keep progress keyed
+by player ID so changing the public name or outfit does not reset the game.
+See [the player account flow](PLAYER-ACCOUNT-FLOW.md) for the complete integration.
+
 ```js
 import { WorldsBay } from '/client/runtime/sdk.js';
 

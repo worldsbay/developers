@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import { worldDefinitionSchema } from '../wire/world.js';
+import { portalTargetSchema, worldMetadataSchema } from '../wire/world-metadata.js';
 
 export function origin(value: string) {
   const url = new URL(value);
@@ -16,6 +17,18 @@ export function origin(value: string) {
     throw new Error('Public URLs must be HTTP(S) origins without paths or credentials.');
   return url.origin;
 }
+export const worldPictureSchema = z
+  .string()
+  .url()
+  .max(2048)
+  .refine((value) => {
+    try {
+      const url = new URL(value);
+      return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password && !url.hash;
+    } catch {
+      return false;
+    }
+  }, 'Use a full HTTP(S) picture URL without credentials or a fragment.');
 export const publicWorldSchema = z
   .object({
     id: z.string().regex(/^[a-z0-9-]{3,60}$/),
@@ -24,10 +37,22 @@ export const publicWorldSchema = z
     url: z.string().transform(origin),
     entryPath: z.literal('/enter'),
     accent: z.string().regex(/^#[0-9a-f]{6}$/i),
+    thumbnail: worldPictureSchema.optional(),
+    ...worldMetadataSchema.shape,
     definition: worldDefinitionSchema.optional(),
   })
   .strict()
   .superRefine((world, context) => {
+    if (
+      world.thumbnail &&
+      worldPictureSchema.safeParse(world.thumbnail).success &&
+      new URL(world.thumbnail).origin !== world.url
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['thumbnail'],
+        message: 'Host the picture on the same origin as your world.',
+      });
     if (world.definition && world.definition.id !== world.id)
       context.addIssue({ code: 'custom', message: 'World and definition IDs must match.' });
   });
@@ -70,10 +95,13 @@ export function validateWorldOrigins(
   )
     throw new Error('Every service needs a different hostname/IP: cookies are not isolated by port.');
   for (const world of worlds)
-    for (const portal of world.definition?.portals ?? [])
+    for (const portal of world.definition?.portals ?? []) {
+      portalTargetSchema.parse(portal.target);
       if (
         portal.target !== 'random' &&
+        !portal.target.startsWith('group:') &&
         (portal.target === world.id || !worlds.some((w) => w.id === portal.target))
       )
         throw new Error('Portals must target another registered world.');
+    }
 }

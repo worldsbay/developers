@@ -39,6 +39,7 @@ with WorldsBay; your server receives a limited player session.
 
 - [Coding-agent guide](docs/AGENT-INTEGRATION.md)
 - [Characters and wardrobe](docs/CHARACTER-BUILDER.md)
+- [Player names, account menus, and returning from the editor](docs/PLAYER-ACCOUNT-FLOW.md)
 - [Avatar compatibility](docs/RIG-PROFILE.md)
 
 The starter includes multiplayer movement, shared interactions, portals, and
@@ -47,6 +48,11 @@ arrive and are checked against their content hashes. The full model library is
 not needed in this checkout.
 
 ## Development
+
+Players can start as guests, save or switch accounts, sign out, and use **Edit name
+& character** to visit WorldsBay and return to the same player. New Google signups
+choose their public name on WorldsBay. Account deletion is also handled there,
+with explicit confirmation; this starter never receives account passwords.
 
 ```sh
 npm run check

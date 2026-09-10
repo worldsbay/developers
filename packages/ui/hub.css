@@ -114,7 +114,7 @@
 .hub-home .brand-symbol {
   width: 33px;
   height: 33px;
-  color: var(--hub-lime);
+  color: #a9e4e1;
 }
 .hub-location-copy .hub-eyebrow {
   font-size: 8px;
@@ -159,6 +159,33 @@
   display: flex;
   gap: 9px;
   align-items: center;
+}
+.hub-shell .hub-save-account {
+  border-radius: 30px;
+  background: #d8eaa9;
+  color: #233a30;
+  padding: 10px 14px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.hub-shell .hub-account-card {
+  padding: 14px;
+  border: 1px solid #ffffff21;
+  border-radius: 14px;
+  margin-bottom: 18px;
+}
+.hub-account-card p {
+  font-size: 12px;
+  line-height: 1.55;
+  color: #cbdace;
+  margin: 0 0 12px;
+}
+.world-entry-accounts {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 12px;
 }
 .hub-shell .hub-player {
   display: flex;
@@ -1087,8 +1114,8 @@
   animation: hub-loader-in 250ms ease-out;
 }
 .world-page .loading-overlay .brand-symbol {
-  color: #d4fa91;
-  filter: drop-shadow(0 0 25px #d4fa9129);
+  color: #a9e4e1;
+  filter: drop-shadow(0 0 25px #a9e4e129);
   animation: hub-loading-pulse 2.5s ease-in-out infinite;
 }
 .world-page .loading-overlay h2 {
@@ -1284,8 +1311,14 @@
     font-size: 12px;
   }
   .hub-shell .hub-settings-button {
-    width: 39px;
-    height: 39px;
+    display: none;
+  }
+  .hub-shell .hub-save-account {
+    padding: 9px 10px;
+    font-size: 10px;
+  }
+  .hub-location h1 {
+    max-width: 130px;
   }
   .hub-bottom {
     bottom: max(12px, env(safe-area-inset-bottom));

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { PROFILE } from '../core/profile.js';
+import { portalTargetSchema } from './world-metadata.js';
 
 export const RUNTIME_PROTOCOL = 1;
 export const vectorSchema = z
@@ -35,7 +36,7 @@ export const worldDefinitionSchema = z
       )
       .max(32),
     portals: z
-      .array(z.object({ target: z.string(), position: vectorSchema }).strict())
+      .array(z.object({ target: portalTargetSchema, position: vectorSchema }).strict())
       .min(1)
       .max(64),
     collection: z.array(z.string().regex(/^[a-z0-9-]+$/)).max(32),

@@ -13,6 +13,17 @@ Keep your game's renderer and gameplay. Use the world server for player entry an
 
 ## Browser SDK
 
+Follow [the player account flow](PLAYER-ACCOUNT-FLOW.md) for Google signup naming,
+guest/saved account menus, editing names and characters, returning to a campaign,
+and account deletion. The included starter implements these account bridge routes.
+
+For signin/signup, import `openAccountPage` from `@worldsbay/api` and call
+`await openAccountPage(sdk, { mode: 'signin' })` or `{ mode: 'signup' }` from a user
+action. This visits central with a browser-bound return flow. `sdk.readAccount()`
+returns guest/saved status. `sdk.signOut()` revokes this world's session and
+remembered credential: show a retryable error on failure, disconnect and reload
+on success. `sdk.startGuest()` and `sdk.resumeSession()` implement direct entry.
+
 Build this repository, then serve the generated runtime with the included world server. The SDK entry is `/client/runtime/sdk.js` on **your world's origin**. Its transitive chunks must remain alongside it. It uses the world's local cookie and contains no Three.js dependency.
 
 ```js
@@ -25,7 +36,7 @@ try {
   // session.homeUrl is the recovery destination when re-entry is needed.
 } catch (error) {
   if (error instanceof RequestError && error.status === 401) {
-    // Show an entry link to WorldsBay; direct world navigation is not a login.
+    // Offer Play as guest (sdk.startGuest()) or sign in with openAccountPage(sdk).
   } else {
     throw error;
   }

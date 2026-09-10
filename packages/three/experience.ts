@@ -1,7 +1,7 @@
 import { brandMark } from '../ui/brand.js';
 import { hubMarkup, mountHub } from '../ui/hub.js';
 import * as THREE from 'three';
-import { WorldsBay, RoomConnection } from '@worldsbay/api';
+import { WorldsBay, RoomConnection, RequestError, openAccountPage } from '@worldsbay/api';
 import { el, escapeHtml as esc, toast } from '../ui/dom.js';
 import { buildWorld, rendererFor } from './scenes.js';
 import { createGraphicsQuality } from './quality.js';
@@ -9,8 +9,9 @@ import { PresentedActor } from './actor.js';
 import { assetCacheMetrics } from './asset-cache.js';
 import { Prediction, PoseBuffer } from '../simulation/prediction.js';
 import { spawnMotion } from '../simulation/movement.js';
-import type { Appearance, Item, World } from '../core/contract.js';
+import type { Appearance, Item, World, WorldSession } from '../core/contract.js';
 import { defaultDefinition, type WorldDefinition } from '../wire/world.js';
+import { portalGroup } from '../wire/world-metadata.js';
 import type { Pose, RoomSnapshot, ChatMessage } from '../wire/room.js';
 export { buildWorld };
 
@@ -42,22 +43,88 @@ export async function startWorld(
     }
     panel.classList.remove('is-leaving');
     panel.setAttribute('role', 'status');
-    panel.innerHTML = `${brandMark}<h2>${esc(title)}</h2><p>${esc(copy)}</p><a class="button" href="${esc(homeUrl)}">Return Home</a>`;
+    panel.innerHTML = `${brandMark}<h2>${esc(title)}</h2><p>${esc(copy)}</p>`;
+    return panel;
+  };
+  const readSession = async () => {
+    try {
+      return await sdk.enterSession();
+    } catch (error) {
+      if (!(error instanceof RequestError) || error.status !== 401) throw error;
+      return sdk.resumeSession();
+    }
+  };
+  let worldName = 'this world';
+  const chooseGuest = () =>
+    new Promise<WorldSession>((resolve) => {
+      const panel = overlay(
+        `Welcome to ${worldName}.`,
+        'Jump in with your own character. Your guest and progress are remembered in this browser.',
+      );
+      panel.removeAttribute('role');
+      panel.insertAdjacentHTML(
+        'beforeend',
+        '<button class="button" id="world-play-guest">Play as guest</button><div class="world-entry-accounts"><button class="button secondary" id="world-entry-signup">Create account</button><button class="button secondary" id="world-entry-signin">Sign in with WorldsBay</button></div><p id="world-entry-error" role="status" aria-live="polite"></p>',
+      );
+      const button = panel.querySelector<HTMLButtonElement>('#world-play-guest')!;
+      let newGuest = false;
+      const lockEntry = (value: boolean) => {
+        for (const action of panel.querySelectorAll<HTMLButtonElement>('button')) action.disabled = value;
+      };
+      const accountEntry = async (mode: 'signup' | 'signin') => {
+        lockEntry(true);
+        try {
+          await openAccountPage(sdk, { mode });
+        } catch (error) {
+          panel.querySelector('#world-entry-error')!.textContent = (error as Error).message;
+        } finally {
+          lockEntry(false);
+        }
+      };
+      panel.querySelector<HTMLButtonElement>('#world-entry-signup')!.onclick = () =>
+        void accountEntry('signup');
+      panel.querySelector<HTMLButtonElement>('#world-entry-signin')!.onclick = () =>
+        void accountEntry('signin');
+      button.onclick = async () => {
+        lockEntry(true);
+        button.textContent = 'Joining…';
+        panel.querySelector('#world-entry-error')!.textContent = '';
+        try {
+          resolve(await sdk.startGuestSession({ newGuest }));
+        } catch (error) {
+          const staleIdentity = error instanceof RequestError && error.status === 401;
+          newGuest ||= staleIdentity;
+          panel.querySelector('#world-entry-error')!.textContent = staleIdentity
+            ? 'Your previous guest could not be restored. Start a new guest to play with a new character and progress.'
+            : error instanceof Error
+              ? error.message
+              : 'Joining is unavailable. Please try again.';
+          lockEntry(false);
+          button.textContent = newGuest ? 'Start a new guest' : 'Play as guest';
+        }
+      };
+    });
+  const openSession = async () => {
+    try {
+      return await readSession();
+    } catch (error) {
+      if (!(error instanceof RequestError) || error.status !== 401) throw error;
+      return chooseGuest();
+    }
   };
   try {
     overlay('A little adventure awaits.', 'Opening the doors to your world.');
     const cfg = await sdk.getConfig();
     homeUrl = cfg.homeUrl;
+    worldName = cfg.world.name;
     document.title = `${cfg.world.name} — WorldsBay`;
-    if (new URL(location.href).searchParams.get('entry') === 'failed') {
-      overlay(
-        'The doorway has closed.',
-        'Your ticket could not be accepted. Return Home for a fresh entry; your collection is saved.',
-      );
-      return;
+    const address = new URL(location.href);
+    if (address.searchParams.get('entry') === 'failed') {
+      address.searchParams.delete('entry');
+      history.replaceState(null, '', address);
     }
     overlay('Welcome back, explorer.', 'Getting your look ready for the journey.');
-    const session = await sdk.enterSession(),
+    const session = await openSession(),
       definition =
         session.world.definition ??
         defaultDefinition(
@@ -108,7 +175,7 @@ export async function startWorld(
       serverOffset = 0;
     const prediction = new Prediction(spawnMotion(definition.spawn), definition);
     let selfPose: Pose | undefined;
-    const connection = new RoomConnection(() => sdk.enterSession());
+    const connection = new RoomConnection(readSession);
     const doorBox = definition.collisions.find((box) => box.id === 'showroom-door');
     const door = new THREE.Mesh(
       new THREE.BoxGeometry(
@@ -178,6 +245,63 @@ export async function startWorld(
       quality,
       actorId: () => connection.actorId,
     });
+    const refreshAccount = async () => {
+      try {
+        const account = await sdk.readAccount();
+        const registered = account.kind === 'account';
+        el('#hub-account-status').textContent = registered
+          ? `Signed in${account.username ? ` as ${account.username}` : ''}. Your avatar and progress are saved to your account.`
+          : account.confirmationPending
+            ? 'Check your email to finish saving your account. You can keep playing while you wait.'
+            : 'Playing as a guest. Create an account to keep your avatar and progress on other devices.';
+        el('#hub-account-signup').hidden = registered;
+        el('#hub-save-account').hidden = registered;
+        el('#hub-account-logout').hidden = !registered;
+        el('#hub-account-signin').textContent = registered ? 'Use another account' : 'Sign in';
+        el('.hub-player-subtitle').textContent = registered ? 'Account saved' : 'Guest · Save your progress';
+      } catch {
+        el('#hub-account-status').textContent =
+          'Account status is temporarily unavailable. Account options are available here when the connection returns.';
+      }
+    };
+    const accountAction = async (mode: 'signup' | 'signin') => {
+      if (busy) return;
+      busy = true;
+      keys.clear();
+      try {
+        await openAccountPage(sdk, { mode });
+      } catch (error) {
+        toast((error as Error).message, true);
+      } finally {
+        busy = false;
+      }
+    };
+    el('#hub-save-account').onclick = () => void accountAction('signup');
+    el('#hub-account-signup').onclick = () => void accountAction('signup');
+    el('#hub-account-signin').onclick = () => void accountAction('signin');
+    el('#hub-account-logout').onclick = () => {
+      if (busy) return;
+      busy = true;
+      keys.clear();
+      const button = el<HTMLButtonElement>('#hub-account-logout');
+      button.disabled = true;
+      button.textContent = 'Signing out…';
+      el('#hub-account-status').textContent = 'Signing out of this world…';
+      void sdk
+        .signOut()
+        .then(() => {
+          connection.disconnect();
+          location.reload();
+        })
+        .catch((error) => {
+          busy = false;
+          button.disabled = false;
+          button.textContent = 'Sign out';
+          el('#hub-account-status').textContent = 'Could not sign out. Please try again.';
+          toast(error.message, true);
+        });
+    };
+    void refreshAccount();
     const syncQuality = () => hub.setQuality(quality.mode, quality.tier);
     el('#scene').addEventListener('graphicsqualitychange', syncQuality, listenerOptions);
     const updateOutfit = (value: Appearance) => {
@@ -233,6 +357,36 @@ export async function startWorld(
       hub.receiveChat(message);
       showSpeech(message);
     });
+    let recovering = false;
+    const showReconnect = () => {
+      if (recovering || busy) return;
+      const panel = overlay('Your adventure is waiting.', 'Reconnect here to continue with your character.');
+      panel.removeAttribute('role');
+      panel.insertAdjacentHTML(
+        'beforeend',
+        '<button class="button" id="world-entry-retry">Reconnect</button><p id="world-entry-error" role="status" aria-live="polite"></p>',
+      );
+      const button = panel.querySelector<HTMLButtonElement>('#world-entry-retry')!;
+      button.onclick = async () => {
+        if (recovering) return;
+        recovering = true;
+        button.disabled = true;
+        button.textContent = 'Reconnecting…';
+        try {
+          const renewed = await openSession();
+          session.appearance = renewed.appearance;
+          overlay('Welcome back.', 'Finding your place in the world.');
+          connection.connect();
+        } catch (error) {
+          panel.querySelector('#world-entry-error')!.textContent =
+            error instanceof Error ? error.message : 'The world is unavailable. Please try again.';
+          button.disabled = false;
+          button.textContent = 'Reconnect';
+        } finally {
+          recovering = false;
+        }
+      };
+    };
     connection.on('state', (state) => {
       hub.setConnection(state);
       el('#scene').dataset.connection = state;
@@ -240,7 +394,7 @@ export async function startWorld(
         keys.clear();
         prediction.clear();
       }
-      if (state === 'expired' || state === 'offline') document.querySelector('#transition')?.remove();
+      if (state === 'expired' || state === 'offline') showReconnect();
     });
     connection.on('central', (available) => {
       el('#central-state').textContent = available
@@ -308,7 +462,9 @@ export async function startWorld(
         'Crossing over…',
         target === 'random'
           ? 'Finding another world for your explorer.'
-          : `Taking your explorer to ${session.destinations.find((w) => w.id === target)?.name ?? 'a new world'}.`,
+          : portalGroup(target) !== undefined
+            ? `Finding a world in ${portalGroup(target)} for your explorer.`
+            : `Taking your explorer to ${session.destinations.find((w) => w.id === target)?.name ?? 'a new world'}.`,
       );
       try {
         const result = await sdk.requestTravel(target);
@@ -362,13 +518,20 @@ export async function startWorld(
     }
     const portalLabels = definition.portals.map((portal) => {
       const target = session.destinations.find((w) => w.id === portal.target);
+      const group = portalGroup(portal.target);
+      const name = target?.name ?? (group ? `Explore ${group}` : 'Surprise me');
       const label = document.createElement('button');
       label.className = 'portal-label hub-portal-label';
       label.hidden = true;
       label.dataset.portal = portal.target;
       label.style.setProperty('--portal-accent', target?.accent ?? '#c4b4ff');
-      label.setAttribute('aria-label', `Open portal to ${target?.name ?? 'a surprise world'}`);
-      label.innerHTML = `<strong>${esc(target?.name ?? 'Surprise me')} ↗</strong><span>Step inside to explore</span>`;
+      label.setAttribute(
+        'aria-label',
+        group
+          ? `Open portal to a random world in ${group}`
+          : `Open portal to ${target?.name ?? 'a surprise world'}`,
+      );
+      label.innerHTML = `<strong>${esc(name)} ↗</strong><span>${group ? 'Random world in this group' : 'Step inside to explore'}</span>`;
       label.onclick = () => void travel(portal.target);
       labels.append(label);
       return {
@@ -414,7 +577,7 @@ export async function startWorld(
         ? items
             .map(
               (item) =>
-                `<article><h3>${esc(item.name)}</h3><p>${esc(item.creator)} · Free</p><button data-open-product="${item.id}">View ${esc(item.name)} in wardrobe ↗</button></article>`,
+                `<article><h3>${esc(item.name)}</h3><p>${esc(item.creator)} · Free</p><button data-open-product="${item.id}">View ${esc(item.name)} in store ↗</button></article>`,
             )
             .join('')
         : '<p>This explorer is wearing the free starter body.</p>';
@@ -523,12 +686,9 @@ export async function startWorld(
           prediction.clear();
           document.querySelector('#transition')?.remove();
           el('#scene').dataset.restored = 'true';
-          void sdk
-            .enterSession()
+          void readSession()
             .then(() => connection.connect())
-            .catch(() => {
-              el('#connection-state').textContent = 'Session ended · return Home to enter again';
-            });
+            .catch(showReconnect);
         }
       },
       listenerOptions,
@@ -718,9 +878,11 @@ export async function startWorld(
       },
     };
   } catch (error) {
-    overlay(
-      'Let’s find your way back.',
-      'Your collection is safe. ' + (error instanceof Error ? error.message : 'The world could not load.'),
+    const panel = overlay(
+      `Let’s get you into ${worldName}.`,
+      error instanceof Error ? error.message : 'The world could not load. Please try again.',
     );
+    panel.insertAdjacentHTML('beforeend', '<button class="button" id="world-entry-retry">Try again</button>');
+    panel.querySelector<HTMLButtonElement>('#world-entry-retry')!.onclick = () => location.reload();
   }
 }

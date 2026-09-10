@@ -36,6 +36,9 @@ type Actor = {
   seq: number;
   rateStart: number;
   rateCount: number;
+  frameStart: number;
+  frameCount: number;
+  frameBytes: number;
   lastEmote: number;
   lastChatErrorAt: number;
   diagnostics: Set<string>;
@@ -171,6 +174,9 @@ export class WorldRoom {
       seq: 0,
       rateStart: this.now(),
       rateCount: 0,
+      frameStart: this.now(),
+      frameCount: 0,
+      frameBytes: 0,
       lastEmote: 0,
       lastChatErrorAt: -Infinity,
       diagnostics: new Set(),
@@ -236,13 +242,24 @@ export class WorldRoom {
     for (const actor of this.actors.values()) this.send(actor, message);
   }
   private receive(actor: Actor, raw: string, binary: boolean) {
+    if (actor.socket.readyState !== WebSocket.OPEN) return;
+    const bytes = Buffer.byteLength(raw);
     this.metrics.messagesIn++;
-    this.metrics.bytesIn += Buffer.byteLength(raw);
+    this.metrics.bytesIn += bytes;
     if (this.now() >= actor.expiresAt) {
       actor.socket.close(4003, 'Session expired');
       return;
     }
-    if (raw.length > 2048 || binary) {
+    // Every frame consumes this budget before JSON parsing, including malformed
+    // chat. Chat retains its separate pacing and movement allowance below.
+    if (this.now() - actor.frameStart >= 1000) {
+      actor.frameStart = this.now();
+      actor.frameCount = 0;
+      actor.frameBytes = 0;
+    }
+    actor.frameCount++;
+    actor.frameBytes += bytes;
+    if (bytes > 2048 || binary || actor.frameCount > 60 || actor.frameBytes > 32 * 1024) {
       this.metrics.rejectedMessages++;
       actor.socket.close(4008, 'Input rate or size exceeded');
       return;
