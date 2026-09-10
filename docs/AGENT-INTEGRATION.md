@@ -3,7 +3,7 @@
 The starter uses the official `@worldsbay/api` npm package. Its `/client/runtime/sdk.js` endpoint is a browser bundle of that package, not a separate SDK implementation. Custom bundled games can import directly from `@worldsbay/api`.
 
 ```sh
-npm install https://worldsbay.com/downloads/worldsbay-api-0.1.0.tgz
+npm install @worldsbay/api
 ```
 
 Use `WorldClient` from `@worldsbay/api/server` for your server's central calls. The included
