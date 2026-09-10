@@ -97,7 +97,7 @@ room.send({ type: 'input', x: 0, z: 1, facing: 0, jump: false, run: false });
 
 Send input at a bounded rate such as 20 Hz, rather than every render frame. Axes and facing must match the [input schema](../packages/wire/room.ts). `send()` returns the assigned sequence number, or zero if the connection cannot send. The room also accepts `chat`, `emote`, `interact` and diagnostic messages defined in that file; it does not accept arbitrary custom action names.
 
-Listen for `chat` and `chatError` when adding chat. Render player names and chat as text, not HTML. `central` reports whether central appearance refresh is available. The connection retries at most five times and preserves the original session expiry.
+Listen for `chat` and `chatError` when adding chat. Render player names and chat as text, not HTML. `central` is a compatibility event; the default room does not emit periodic central-availability probes. Handle errors from explicit operations. The connection retries at most five times and preserves the original session expiry.
 
 If you already have a multiplayer server, keep your own transport. Validate players through the server entry handshake, then adapt the accepted identity to your own server-side session. The HTTP SDK can be used without `RoomConnection`. WorldsBay does not validate your game's combat, scores or economy.
 
@@ -115,3 +115,11 @@ For a custom Three.js scene, `loadAvatar(appearance)` from that entry supports b
 - Run `npm run check`, then exercise two browser sessions: entry, movement, appearance changes and travel. Confirm expired or replayed tickets fail and offline destinations leave a recovery path.
 
 [Back to the README](../README.md)
+
+## Appearance during play
+
+Canonical appearance is loaded at entry and socket admission. Connected rooms retain that appearance: there is no per-player polling, including in Commons, Observatory, Stargate and Westeros. Concurrent reads for the same grant are deduplicated. A game with a wardrobe can explicitly call `sdk.refreshAppearance()` (`GET /api/appearance`); the standard room broadcasts newer revisions to its peers. Custom game services can implement `updateAppearance(grant, appearance)` to apply that explicit result, or use `context.refresh(grant)` in their own event-driven flow. Neither API installs a timer. Older HTTP/asset results cannot replace newer revisions. Public snapshots contain opaque actor IDs, display name, pose, worn item revisions and stable animation IDs/times, without unworn inventory. Scene-ready and room-joined counters are separate from central acceptance.
+
+Central revocation is enforced on subsequent central operations and successful fresh admission checks; it is not pushed into an already-connected room. Existing sockets can continue local play until their original one-hour grant expiry. Explicit sign-out stops the signing-out browser's room connection. Central outages are discovered by requested actions, not background player probes. Games needing prompt remote disconnection require a separate revocation mechanism; do not reintroduce appearance polling as an implicit security dependency.
+
+World presence reports remain every ten seconds and contain aggregate counts only. See the central traffic report in the main project (`docs/CENTRAL-TRAFFIC.md`) for sizing assumptions. Existing downloaded servers need a runtime update; changing central alone does not stop their old polling loops.

@@ -6,6 +6,13 @@ The starter runs your scene and multiplayer server. WorldsBay handles player acc
 
 ## Connect
 
+Clone the official source before configuring it:
+
+```sh
+git clone https://github.com/worldsbay/developers.git my-world
+cd my-world
+```
+
 1. Save an account at [WorldsBay](https://worldsbay.com), then open [Connect](https://worldsbay.com/connect).
 2. Register your world with an HTTPS origin on port 443, such as `https://your-world.example`. Use a separate hostname from WorldsBay and other connected worlds: changing a port or path does not isolate cookies.
 3. Copy `.env.example` to `.env`. Fill in the registered world ID, private server key, world URL and name. Keep `CENTRAL_URL=https://worldsbay.com`.
@@ -21,7 +28,7 @@ The starter runs your scene and multiplayer server. WorldsBay handles player acc
 6. Route your HTTPS hostname to the server's local port, `3003` by default. Forward WebSocket upgrades for `/room`. Preserve the original host and HTTPS scheme, and overwrite forwarded client-IP headers with the actual client IP. The starter trusts a proxy on the same machine.
 7. Choose **Verify & connect** in the builder desk, then enter your world from WorldsBay.
 
-The server exposes the registration proof at `/.well-known/worldsbay.json`. Verification makes the world available without a central restart. Opening the world URL directly requires an existing accepted session; a new player enters through WorldsBay.
+The server exposes the registration proof at `/.well-known/worldsbay.json`. Verification makes the world available without a central restart. Opening the world URL directly offers guest entry, account creation and sign-in. Returning players can resume their remembered identity in the world.
 
 `.env` stays private. The verification JSON is served publicly by design, but belongs to your individual registration and should stay out of the shared repository. Serve only the configured public directories, not the repository root.
 
@@ -48,6 +55,6 @@ Character editing opens on WorldsBay and returns the player to your world. Your 
 
 Run `npm run check` for the repository's type, build and test checks. Then use two separate browser sessions to enter, move, chat, edit a character and travel away and back. Check your public `/health` and verification routes if registration fails; check WebSocket forwarding if entry succeeds but the room does not connect.
 
-World sessions and room state live in memory. A server restart requires players to re-enter through WorldsBay. Keep your starter updated from [the repository](https://github.com/worldsbay/developers); an installed copy does not update itself.
+World sessions and room state live in memory. After a restart, returning players can resume using their remembered world cookie; an interrupted sign-in must be started again. Keep your starter updated from [the repository](https://github.com/worldsbay/developers); an installed copy does not update itself.
 
 [Back to the README](../README.md)

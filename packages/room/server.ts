@@ -31,8 +31,6 @@ type Actor = {
   input: InputIntent;
   lastInputAt: number;
   lastPong: number;
-  lastRefresh: number;
-  refreshing: boolean;
   seq: number;
   rateStart: number;
   rateCount: number;
@@ -54,8 +52,6 @@ export class WorldRoom {
     messagesOut: 0,
     bytesIn: 0,
     bytesOut: 0,
-    refreshes: 0,
-    refreshFailures: 0,
     sceneReady: 0,
     roomJoined: 0,
     steps: [] as number[],
@@ -89,12 +85,22 @@ export class WorldRoom {
   constructor(
     readonly definition: WorldDefinition,
     private now: () => number = Date.now,
-    private refresh?: (grant: string) => Promise<Appearance>,
     readonly tickHz = 20,
     readonly snapshotHz = 10,
-    private refreshMs = 4000,
   ) {
     this.lastAt = now();
+  }
+  /** Apply an explicitly requested canonical update; rooms never poll central. */
+  updateAppearance(grant: string, appearance: Appearance) {
+    for (const actor of this.actors.values()) {
+      if (actor.grant !== grant || actor.expiresAt <= this.now() ||
+          (appearance.revision ?? 1) <= (actor.appearance.revision ?? 1)) continue;
+      actor.appearance = appearance;
+      actor.pose.revision = appearance.revision ?? 1;
+      actor.pose.color = appearance.player.color;
+      actor.pose.name = appearance.player.name;
+      this.broadcast({ type: 'appearance', actorId: actor.id, appearance: this.publicAppearance(actor) });
+    }
   }
   admit(socket: WebSocket, identity: Admission) {
     if (identity.expiresAt <= this.now()) {
@@ -169,8 +175,6 @@ export class WorldRoom {
       input: neutralInput(),
       lastInputAt: 0,
       lastPong: this.now(),
-      lastRefresh: this.now(),
-      refreshing: false,
       seq: 0,
       rateStart: this.now(),
       rateCount: 0,
@@ -440,38 +444,7 @@ export class WorldRoom {
         actor.socket.terminate();
         continue;
       }
-      if (this.refresh && !actor.refreshing && at - actor.lastRefresh >= this.refreshMs) {
-        actor.refreshing = true;
-        actor.lastRefresh = at;
-        this.metrics.refreshes++;
-        void this.refresh(actor.grant)
-          .then((appearance) => {
-            if (!this.current(actor)) return;
-            if ((appearance.revision ?? 1) > (actor.appearance.revision ?? 1)) {
-              actor.appearance = appearance;
-              actor.pose.revision = appearance.revision ?? 1;
-              actor.pose.color = appearance.player.color;
-              actor.pose.name = appearance.player.name;
-              this.broadcast({
-                type: 'appearance',
-                actorId: actor.id,
-                appearance: this.publicAppearance(actor),
-              });
-            }
-            this.send(actor, { type: 'central', available: true });
-          })
-          .catch((error: { statusCode?: number }) => {
-            this.metrics.refreshFailures++;
-            if ([401, 403].includes(error.statusCode ?? 0)) {
-              actor.socket.close(4003, 'Session revoked');
-              return;
-            }
-            if (this.current(actor)) this.send(actor, { type: 'central', available: false });
-          })
-          .finally(() => {
-            actor.refreshing = false;
-          });
-      }
+
     }
   }
   private step(dt: number) {
@@ -554,19 +527,15 @@ export function installRoom(
     origin: string | (() => string);
     definition: WorldDefinition;
     admit: (req: IncomingMessage) => Promise<Admission>;
-    refresh: (grant: string) => Promise<Appearance>;
     now?: () => number;
-    refreshMs?: number;
     tickHz?: number;
   },
 ) {
   const room = new WorldRoom(
     options.definition,
     options.now ?? Date.now,
-    options.refresh,
     options.tickHz ?? 20,
     10,
-    options.refreshMs ?? 4000,
   );
   const wss = new WebSocketServer({ noServer: true, maxPayload: 2048, perMessageDeflate: false });
   let pending = 0;

@@ -80,7 +80,7 @@ The wardrobe context lasts five minutes and is bound to the same player. It is a
 
 The supplied room uses protocol 1, 20 simulation steps per second and 10 snapshots per second. Clients send bounded movement intent; the server calculates positions, collisions and built-in interactions. A new connection for the same player replaces the previous one. Room snapshots use opaque actor IDs and share worn appearance, not account credentials or unworn inventory.
 
-The SDK emits `welcome`, `snapshot`, `appearance`, `chat`, `chatError`, `state`, `central` and `error` events. `welcome` includes initial appearances and recent room chat. Appearance updates normally refresh every four seconds. Use revision ordering so a late asset load cannot replace a newer look.
+The SDK emits `welcome`, `snapshot`, `appearance`, `chat`, `chatError`, `state`, `central` and `error` events. `welcome` includes initial appearances and recent room chat. Appearance is loaded at entry and retained without polling. An explicit `sdk.refreshAppearance()` fetches and broadcasts a newer saved outfit. Use revision ordering so a late asset load cannot replace a newer look.
 
 Accepted sessions can continue local gameplay during a central outage until their original expiry, provided their required assets have already loaded. Entry, travel and fresh appearance reads still depend on WorldsBay. Authorization failures end the session; an outage must not extend a grant.
 
@@ -89,3 +89,5 @@ The world proxy admits only content-addressed GLBs named by authorized appearanc
 For a custom game, extend your server-side rules and protocol deliberately. Extra client fields, claimed positions, unknown actions and invalid sequences are rejected by the existing room. See [SDK integration](AGENT-INTEGRATION.md) and the actual [wire types](../packages/wire/room.ts).
 
 [Back to the README](../README.md)
+
+Central revocation is enforced on subsequent central operations and successful fresh admission checks; it is not pushed into an already-connected room. Existing sockets can continue local play until their original one-hour grant expiry. Explicit sign-out stops the signing-out browser's room connection. Central outages are discovered by requested actions, not background player probes. Games needing prompt remote disconnection require a separate revocation mechanism; do not reintroduce appearance polling as an implicit security dependency.

@@ -1,6 +1,6 @@
 # Build with WorldsBay
 
-A multiplayer starter and integration guides using the official API for connecting your game to
+A runnable multiplayer example and integration guides using the official API for connecting your game to
 [WorldsBay](https://worldsbay.com).
 
 Your world gets a doorway in the hub, shared player accounts, and portable
@@ -23,7 +23,7 @@ npm run build
    registration. Put the downloaded `worldsbay.json` beside `server.mjs`.
 3. Run `npm start`. Point your HTTPS reverse proxy at `127.0.0.1:3003`, with
    WebSocket forwarding for `/room`.
-4. Choose **Verify & connect** in the builder desk, then enter through the hub.
+4. Choose **Verify & connect** in the builder desk, then open your world directly or enter through the hub.
 
 Edit `public/client.js` for your scene and `server.mjs` for your world's
 definition. The [setup guide](docs/WORLD-STARTER.md) covers hosting and first entry.
@@ -74,3 +74,16 @@ Update this source and rebuild to receive runtime fixes.
 
 [MIT](LICENSE). Third-party software, font material, and character assets keep
 their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
+
+## Source and updates
+
+This repository is the supported source for the example world, server adapter,
+character renderer and reusable editor. Install `@worldsbay/api` for API clients
+and CDN asset access. Website starter and character archives are retired.
+Review upstream commits, update your checkout and dependencies, rebuild, and
+restart your world to receive fixes.
+
+Appearance is loaded on entry and retained while connected. A game with a wardrobe
+can call `sdk.refreshAppearance()` explicitly; the standard room applies and
+broadcasts a newer revision. No background appearance timer runs. World presence
+reports continue every ten seconds, independent of player count.

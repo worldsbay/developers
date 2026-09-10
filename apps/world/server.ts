@@ -51,6 +51,7 @@ export type WorldGameService = {
   maxPlayers?: number;
   activeGrants: () => string[];
   diagnostics: () => unknown;
+  updateAppearance?: (grant: string, appearance: Appearance) => void;
 };
 export async function createWorld(
   cfg: Config,
@@ -61,7 +62,6 @@ export async function createWorld(
     static?: boolean;
     now?: () => number;
     logger?: boolean;
-    appearanceRefreshMs?: number;
     heartbeatMs?: number;
     onRoom?: (room: WorldRoom) => void;
     clientRoot?: string;
@@ -234,12 +234,12 @@ export async function createWorld(
       ...gameContext,
       origin: () => world.url,
       definition,
-      refreshMs: options.appearanceRefreshMs,
     });
     options.onRoom?.(roomService.room);
     gameService = {
       activeGrants: () => [...roomService.room.actors.values()].map((actor) => actor.grant),
       diagnostics: roomService.diagnostics,
+      updateAppearance: (grant, value) => roomService.room.updateAppearance(grant, value),
     };
   }
   app.get('/health', async () => ({ ok: true, service: worldId }));
@@ -585,7 +585,12 @@ export async function createWorld(
     reply.clearCookie(resumeCookieName, { path: '/', secure: cookieOptions.secure });
     return { ok: true };
   });
-  app.get('/api/appearance', async (req) => appearance(localSession(req.cookies[cookieName])));
+  app.get('/api/appearance', async (req) => {
+    const stored = localSession(req.cookies[cookieName]);
+    const value = await appearance(stored);
+    gameService.updateAppearance?.(stored.grant, value);
+    return value;
+  });
   app.get('/api/room-metrics', async (req) => {
     session(req.cookies[cookieName]);
     return gameService.diagnostics();

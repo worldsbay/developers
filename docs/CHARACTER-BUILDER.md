@@ -1,6 +1,6 @@
 # Player characters
 
-Players edit and save their character on WorldsBay. Your world receives their approved appearance when they enter, and the room distributes changes to other players. Account writes and ownership remain on the central service.
+Players edit and save their character on WorldsBay. Your world receives their approved appearance when they enter, and the room retains that appearance while they stay connected. A game with a wardrobe can explicitly call `sdk.refreshAppearance()` to fetch and distribute a newer revision; there is no periodic appearance query. Account writes and ownership remain on the central service.
 
 ## Open the editor
 
