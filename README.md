@@ -21,7 +21,7 @@ npm run build
 1. Open the [builder desk](https://worldsbay.com/connect) and register your world.
 2. Copy `.env.example` to `.env`, then fill in the private configuration from
    registration. Put the downloaded `worldsbay.json` beside `server.mjs`.
-3. Run `npm start`. Point your HTTPS reverse proxy at `127.0.0.1:3003`, with
+3. Run `npm start`. Point your HTTPS reverse proxy at your world server’s listening address, with
    WebSocket forwarding for `/room`.
 4. Choose **Verify & connect** in the builder desk, then open your world directly or enter through the hub.
 

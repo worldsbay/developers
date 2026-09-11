@@ -25,7 +25,7 @@ cd my-world
    npm start
    ```
 
-6. Route your HTTPS hostname to the server's local port, `3003` by default. Forward WebSocket upgrades for `/room`. Preserve the original host and HTTPS scheme, and overwrite forwarded client-IP headers with the actual client IP. The starter trusts a proxy on the same machine.
+6. Route your HTTPS hostname to your world server’s listening address. Forward WebSocket upgrades for `/room`. Preserve the original host and HTTPS scheme, and overwrite forwarded client-IP headers with the actual client IP. The starter trusts a proxy on the same machine.
 7. Choose **Verify & connect** in the builder desk, then enter your world from WorldsBay.
 
 The server exposes the registration proof at `/.well-known/worldsbay.json`. Verification makes the world available without a central restart. Opening the world URL directly offers guest entry, account creation and sign-in. Returning players can resume their remembered identity in the world.
@@ -58,3 +58,16 @@ Run `npm run check` for the repository's type, build and test checks. Then use t
 World sessions and room state live in memory. After a restart, returning players can resume using their remembered world cookie; an interrupted sign-in must be started again. Keep your starter updated from [the repository](https://github.com/worldsbay/developers); an installed copy does not update itself.
 
 [Back to the README](../README.md)
+
+## WorldsBay connection settings
+
+Add the values from registration to your world server’s private environment:
+
+```dotenv
+CENTRAL_URL=https://worldsbay.com
+WORLD_ID=wb-your-registered-world-id
+WORLD_URL=https://your-world.example
+WORLD_SECRET=your-private-registration-key
+```
+
+`CENTRAL_URL` identifies WorldsBay. `WORLD_ID` and `WORLD_SECRET` authenticate your world server. `WORLD_URL` is the public HTTPS origin players visit and WorldsBay verifies, such as `https://luthadelatnight.com`. Keep the private key on the server.
