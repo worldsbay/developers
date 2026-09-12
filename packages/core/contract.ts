@@ -45,11 +45,14 @@ export type World = {
   accent: string;
   thumbnail?: string;
   tags?: string[];
+  avatarSupport?: ('low-poly' | 'detailed')[];
   group?: string;
   definition?: WorldDefinition;
 };
 export type Player = { id: string; name: string; color: string };
 export type Appearance = {
+  avatarStyle?: 'low-poly' | 'detailed';
+  avatarSupported?: boolean;
   player: Player;
   revision?: number;
   profile: typeof PROFILE | typeof CHARACTER_PROFILE;

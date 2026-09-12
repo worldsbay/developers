@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { avatarSupportSchema } from './avatar-support.js';
 
 export const WORLD_TAG_SUGGESTIONS = [
   'racing',
@@ -46,6 +47,7 @@ export const worldGroupSchema = slug(60);
 export const worldMetadataSchema = z
   .object({
     tags: worldTagsSchema.optional(),
+    avatarSupport: avatarSupportSchema.optional(),
     group: worldGroupSchema.optional(),
   })
   .strict();

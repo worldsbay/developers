@@ -71,3 +71,9 @@ WORLD_SECRET=your-private-registration-key
 ```
 
 `CENTRAL_URL` identifies WorldsBay. `WORLD_ID` and `WORLD_SECRET` authenticate your world server. `WORLD_URL` is the public HTTPS origin players visit and WorldsBay verifies, such as `https://luthadelatnight.com`. Keep the private key on the server.
+
+## Avatar style support
+
+Choose `avatarSupport` when registering your world or editing world settings: `['low-poly']`, `['detailed']`, both values, or `[]` for your own avatars. Discovery and session responses include this metadata. Central picks a compatible saved look without changing the player's preference. Check `appearance.avatarSupported`; false requires your world's own avatar. See [avatar styles](AVATAR-SUPPORT.md).
+
+The reusable `mountCharacterCreator` accepts optional `avatarSlots` and `worlds` inputs. Pass the saved slots and current world metadata to show independent looks and per-world compatibility. Its save callback must use an authorized central browser session; a game's private server key cannot write player recipes. Custom pages embedding the editor must allow the world's thumbnail origins in their image Content Security Policy. The standard starter redirects players to the hosted central editor.

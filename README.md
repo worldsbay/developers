@@ -30,7 +30,7 @@ definition. The [setup guide](docs/WORLD-STARTER.md) covers hosting and first en
 
 ## Connect an existing game
 
-Use the official npm package `@worldsbay/api@0.1.1` with the
+Use the official npm package `@worldsbay/api@0.1.2` with the
 [server integration contract](docs/ARCHITECTURE.md). The browser build serves it
 at `/client/runtime/sdk.js`; `packages/sdk` re-exports the installed package.
 With a bundler, import directly from `@worldsbay/api`. The world server uses
@@ -40,6 +40,7 @@ with WorldsBay; your server receives a limited player session.
 - [Coding-agent guide](docs/AGENT-INTEGRATION.md)
 - [Characters and wardrobe](docs/CHARACTER-BUILDER.md)
 - [Player names, account menus, and returning from the editor](docs/PLAYER-ACCOUNT-FLOW.md)
+- [Avatar styles, saved slots, and world support](docs/AVATAR-SUPPORT.md)
 - [Avatar compatibility](docs/RIG-PROFILE.md)
 
 The starter includes multiplayer movement, shared interactions, portals, and

@@ -300,6 +300,8 @@ export function composeAvatar(appearance: Appearance, base: GLTF, items: GLTF[])
 }
 
 export async function loadAvatar(appearance: Appearance): Promise<Avatar> {
+  if (appearance.avatarSupported === false)
+    throw new Error('This world uses its own avatar for this player.');
   if (appearance.character) {
     const { loadCharacterAvatar } = await import('../character/avatar.js');
     return loadCharacterAvatar(appearance);

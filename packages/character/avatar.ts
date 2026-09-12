@@ -5,6 +5,7 @@ import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { acquireAsset } from '../three/asset-cache.js';
 import type { Avatar } from '../three/avatar.js';
 import type { Appearance } from '../core/contract.js';
+import { clothingRegion, clothingRegions } from './color-regions.js';
 import { characterLimits, type CharacterAppearance, type CharacterAsset } from './contract.js';
 
 export function characterAssetUrl(asset: CharacterAsset, baseUrl?: string) {
@@ -69,8 +70,33 @@ export function composeCharacter(
           cloth = new THREE.Color(value.recipe.colors.cloth);
         const colorMode =
           value.recipe.partColorModes?.[value.parts[index].slot] ?? value.recipe.colorMode ?? 'custom';
+        const part = value.parts[index];
+        const overrides = value.recipe.partColors?.[part.id];
+        const regionMode = overrides && clothingRegions(part).length > 0;
         for (let v = 0; v < colors.count; v++) {
-          const channel = tint?.getX(v) ?? 0;
+          // Released Ranger hoods lacked a clothing tint tag. Keep pinned saved
+          // assets recolorable without replacing their immutable files.
+          const channel =
+            (tint?.getX(v) ?? 0) || (/Ranger_Head_Hood$/.test(value.parts[index].sourceNode) ? 3 : 0);
+          if (colorMode === 'custom' && regionMode && channel === 3) {
+            const original = new THREE.Color(colors.getX(v), colors.getY(v), colors.getZ(v));
+            const region = clothingRegion(part, original, channel);
+            const replacement = region && overrides[region];
+            if (replacement) {
+              const reference = new THREE.Color(clothingRegions(part).find((r) => r.id === region)!.color);
+              const brightness = Math.min(
+                2,
+                Math.max(
+                  0.15,
+                  Math.max(original.r, original.g, original.b) /
+                    Math.max(reference.r, reference.g, reference.b),
+                ),
+              );
+              const chosen = new THREE.Color(replacement).multiplyScalar(brightness);
+              colors.setXYZ(v, chosen.r, chosen.g, chosen.b);
+            }
+            continue;
+          }
           if (colorMode === 'custom' && (channel === 1 || channel === 2 || channel === 3)) {
             const chosen = channel === 1 ? skin : channel === 2 ? hair : cloth;
             // Keep the baked shading while letting the user choose a pigment.

@@ -4,6 +4,7 @@ export const CHARACTER_PROFILE = 'pocket-humanoid-v2' as const;
 export const characterSlots = [
   'head',
   'hair',
+  'beard',
   'headwear',
   'top',
   'outerwear',
@@ -46,6 +47,13 @@ export const characterRecipeSchema = z
       .strict(),
     colors: z.object({ skin: color, hair: color, cloth: color }).strict(),
     colorMode: colorMode.optional(),
+    partColors: z
+      .record(
+        id,
+        z.object({ fabric: color.optional(), trim: color.optional(), leather: color.optional() }).strict(),
+      )
+      .refine((parts) => Object.keys(parts).length <= 128)
+      .optional(),
     partColorModes: z
       .object(
         Object.fromEntries(characterSlots.map((slot) => [slot, colorMode.optional()])) as Record<
@@ -73,6 +81,7 @@ export type CharacterPart = {
   collection?: string;
   adaptedFrom?: string;
   requires?: string[];
+  requiredSlots?: CharacterSlot[];
   compatibleWith?: Partial<Record<CharacterSlot, string[]>>;
   hides?: CharacterSlot[];
 };
@@ -87,6 +96,7 @@ export type CharacterClip = {
   asset: CharacterAsset;
 };
 export type CharacterRig = {
+  colorChannels?: ('skin' | 'hair' | 'cloth')[];
   id: string;
   name: string;
   asset: CharacterAsset;
@@ -98,6 +108,8 @@ export type CharacterRig = {
   clips: CharacterClip[];
 };
 export type CharacterPack = {
+  /** Game-only packs must never be included in standalone asset downloads. */
+  distribution?: 'game-only';
   version: 1;
   profile: typeof CHARACTER_PROFILE;
   revision: string;
@@ -123,7 +135,7 @@ export function validateCharacterRecipe(input: unknown, pack: CharacterPack): Ch
   for (const slot of characterSlots) {
     const partId = recipe.parts[slot];
     if (!partId) {
-      if (rig.requiredSlots.includes(slot)) throw new Error(`Choose a ${slot} part.`);
+      if (characterRequiredSlots(recipe, pack).includes(slot)) throw new Error(`Choose a ${slot} part.`);
       continue;
     }
     const part = pack.parts.find((p) => p.id === partId);
@@ -187,17 +199,71 @@ export function characterHiddenSlots(recipe: CharacterRecipe, pack: CharacterPac
   return hidden;
 }
 
-/** A base change removes only optional pieces that no longer fit, with names for the UI. */
+export function characterRequiredSlots(recipe: CharacterRecipe, pack: CharacterPack) {
+  return [
+    ...new Set([
+      ...pack.rigs.find((r) => r.id === recipe.rig)!.requiredSlots,
+      ...pack.parts
+        .filter((p) => Object.values(recipe.parts).includes(p.id))
+        .flatMap((p) => p.requiredSlots ?? []),
+    ]),
+  ];
+}
+
+/** Open a pinned recipe against the current catalogue without discarding its outfit. */
+export function restoreCharacterRecipe(recipe: CharacterRecipe, pack: CharacterPack) {
+  const result = structuredClone(recipe);
+  const replaced: CharacterSlot[] = [];
+  const rig = pack.rigs.find((r) => r.id === result.rig);
+  if (!rig) throw new Error('Unknown character rig.');
+  if (result.packRevision !== pack.revision) {
+    for (const slot of characterSlots) {
+      const id = result.parts[slot];
+      if (id && !pack.parts.some((p) => p.id === id && p.rig === rig.id && p.slot === slot)) {
+        result.parts[slot] = rig.defaults[slot] ?? null;
+        replaced.push(slot);
+      }
+    }
+    result.packRevision = pack.revision;
+  }
+  return { ...reconcileCharacterParts(result, pack), replaced };
+}
+
+/** Keep required parts complete and remove optional pieces that no longer fit. */
 export function reconcileCharacterParts(recipe: CharacterRecipe, pack: CharacterPack) {
   const result = structuredClone(recipe),
-    removed: string[] = [];
+    removed: string[] = [],
+    fitted: string[] = [];
   const rig = pack.rigs.find((r) => r.id === result.rig)!;
+  for (const slot of characterRequiredSlots(result, pack)) {
+    if (result.parts[slot]) continue;
+    const family = pack.parts.find((p) => p.id === result.parts.top)?.family;
+    const candidates = pack.parts.filter(
+      (p) => p.rig === rig.id && p.slot === slot && !characterPartIssue(p, result, pack),
+    );
+    const replacement = candidates.find((p) => p.family === family) ?? candidates[0];
+    if (!replacement) throw new Error(`No compatible ${slot} part.`);
+    result.parts[slot] = replacement.id;
+    fitted.push(replacement.name);
+  }
   for (const slot of characterSlots) {
     const part = pack.parts.find((p) => p.id === result.parts[slot]);
-    if (part && !rig.requiredSlots.includes(slot) && characterPartIssue(part, result, pack)) {
-      result.parts[slot] = null;
-      removed.push(part.name);
+    if (part && characterPartIssue(part, result, pack)) {
+      if (characterRequiredSlots(result, pack).includes(slot)) {
+        const replacement = pack.parts.find(
+          (candidate) =>
+            candidate.rig === rig.id &&
+            candidate.slot === slot &&
+            !characterPartIssue(candidate, result, pack),
+        );
+        if (!replacement) throw new Error(`No compatible ${slot} part.`);
+        result.parts[slot] = replacement.id;
+        fitted.push(replacement.name);
+      } else {
+        result.parts[slot] = null;
+        removed.push(part.name);
+      }
     }
   }
-  return { recipe: validateCharacterRecipe(result, pack), removed };
+  return { recipe: validateCharacterRecipe(result, pack), removed, fitted };
 }
