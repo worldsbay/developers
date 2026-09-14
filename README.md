@@ -6,6 +6,10 @@ A runnable multiplayer example and integration guides using the official API for
 Your world gets a doorway in the hub, shared player accounts, and portable
 characters. You control the hosting, scene, and game rules.
 
+![Overview of the starter world: a floating garden with a stone courtyard, trees, seating, a portal, and a turquoise crystal.](assets/site/starter-overview.png)
+
+Local scene preview of the included starter, shown without a multiplayer session.
+
 ## Start a world
 
 Requires **Node.js 22.12+**, your own public HTTPS hostname, and a saved
@@ -30,7 +34,7 @@ definition. The [setup guide](docs/WORLD-STARTER.md) covers hosting and first en
 
 ## Connect an existing game
 
-Use the official npm package `@worldsbay/api@0.1.2` with the
+Use the official npm package `@worldsbay/api@0.1.3` with the
 [server integration contract](docs/ARCHITECTURE.md). The browser build serves it
 at `/client/runtime/sdk.js`; `packages/sdk` re-exports the installed package.
 With a bundler, import directly from `@worldsbay/api`. The world server uses
