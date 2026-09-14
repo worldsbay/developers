@@ -88,3 +88,7 @@ Appearance is loaded on entry and retained while connected. A game with a wardro
 can call `sdk.refreshAppearance()` explicitly; the standard room applies and
 broadcasts a newer revision. No background appearance timer runs. World presence
 reports continue every ten seconds, independent of player count.
+
+## Shared player saves
+
+Define collections and per-world read/write access in the [builder desk](https://worldsbay.com/connect), then use the server SDK for validated game actions. See [group player data](docs/GROUP-PLAYER-DATA.md) for the owner editor, local sample-player playground, API contract and real-world test sequence. Live saves begin with one operator-enabled alpha group.
